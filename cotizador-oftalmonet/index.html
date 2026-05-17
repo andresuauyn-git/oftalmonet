@@ -1,0 +1,2334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Cotizaciones – Oftalmonet</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f3ef;
+    --surface: #ffffff;
+    --border: #ddd9d0;
+    --border-strong: #c7c2b6;
+    --text: #1a1917;
+    --muted: #7a766d;
+    --accent: #5B6FCC;
+    --accent-dark: #3d4f9e;
+    --accent-light: #eef0fb;
+    --red: #c0392b;
+    --red-light: #fdf0ef;
+    --green: #1a6b4a;
+    --green-light: #edf5f0;
+    --amber: #b07d00;
+    --amber-light: #fffbf0;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; padding: 28px 22px; }
+  .wrapper { max-width: 1180px; margin: 0 auto; }
+
+  /* ───── BARRA SUPERIOR (no se imprime) ───── */
+  .app-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 18px;
+  }
+  .app-title { display: flex; align-items: center; gap: 10px; }
+  .app-title-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+  .app-title h1 { font-size: 15px; font-weight: 800; letter-spacing: -0.3px; }
+  .app-title small { font-size: 10px; font-family: var(--mono); color: var(--muted); display: block; }
+
+  .app-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 6px; font-family: var(--sans); font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; white-space: nowrap; }
+  .btn-pdf { background: var(--accent); color: white; box-shadow: 0 2px 6px rgba(91,111,204,0.25); }
+  .btn-pdf:hover { background: var(--accent-dark); transform: translateY(-1px); }
+  .btn-ghost { background: transparent; color: var(--text); border-color: var(--border-strong); }
+  .btn-ghost:hover { background: var(--bg); }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: var(--accent-dark); }
+  .btn-danger { background: transparent; color: var(--red); border-color: var(--red); }
+  .btn-danger:hover { background: var(--red-light); }
+  .btn-danger-icon { background: transparent; color: var(--red); border: 1px solid var(--red); padding: 4px 8px; font-size: 11px; }
+  .btn-danger-icon:hover { background: var(--red-light); }
+  .btn-cancel { background: var(--bg); border-color: var(--border); color: var(--text); }
+  .btn-sm { padding: 5px 10px; font-size: 11px; }
+
+  /* ───── PANEL DE PERSONALIZACIÓN ───── */
+  .config-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 18px;
+    overflow: hidden;
+    display: none;
+  }
+  .config-panel.open { display: block; }
+  .config-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); background: var(--bg); }
+  .config-tab {
+    flex: 1;
+    padding: 12px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .config-tab:hover { color: var(--text); background: rgba(0,0,0,0.02); }
+  .config-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--surface); }
+  .config-content { padding: 18px 22px; }
+  .config-pane { display: none; }
+  .config-pane.active { display: block; }
+
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+  .field-grid.three { grid-template-columns: repeat(3, 1fr); }
+  .field-grid.full { grid-template-columns: 1fr; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field.span-2 { grid-column: span 2; }
+  .field label {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .field input, .field textarea, .field select {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-family: var(--sans);
+    font-size: 13px;
+    background: var(--surface);
+    color: var(--text);
+    transition: all 0.15s;
+    width: 100%;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(91,111,204,0.12);
+  }
+  .field textarea { resize: vertical; min-height: 60px; font-family: var(--mono); font-size: 12px; }
+  .field.mono input, .field.mono textarea { font-family: var(--mono); font-size: 12px; }
+  .field-hint { font-size: 10px; color: var(--muted); font-family: var(--mono); margin-top: 1px; }
+
+  .logo-uploader {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+    border: 2px dashed var(--border-strong);
+    border-radius: 8px;
+    background: var(--bg);
+  }
+  .logo-preview {
+    width: 64px; height: 64px;
+    border-radius: 10px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 22px; font-weight: 800; letter-spacing: -1px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .logo-preview img { width: 100%; height: 100%; object-fit: contain; background: white; }
+  .logo-actions { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
+  .logo-actions p { font-size: 11px; color: var(--muted); font-family: var(--mono); flex-basis: 100%; }
+
+  .color-row { display: flex; gap: 10px; align-items: center; }
+  .color-picker { width: 44px; height: 36px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; background: transparent; }
+  .color-input { flex: 1; }
+
+  /* ───── DOCUMENTO ───── */
+  .doc-header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    gap: 20px;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1; }
+  .brand-logo {
+    width: 52px; height: 52px;
+    border-radius: 10px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 20px; font-weight: 800; letter-spacing: -1px;
+    flex-shrink: 0; overflow: hidden;
+  }
+  .brand-logo img { width: 100%; height: 100%; object-fit: contain; background: white; }
+  .brand-info { min-width: 0; }
+  .brand-info h2 { font-size: 21px; font-weight: 800; color: var(--text); margin-bottom: 3px; line-height: 1.15; }
+  .brand-info .line { font-size: 12px; color: var(--muted); font-family: var(--mono); line-height: 1.55; white-space: pre-wrap; }
+  .doc-meta-right { text-align: right; flex-shrink: 0; }
+  .doc-type { font-size: 11px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .doc-num { font-size: 22px; font-weight: 800; color: var(--accent); font-family: var(--mono); }
+  .meta-line { font-size: 12px; font-family: var(--mono); color: var(--muted); margin-top: 3px; }
+  .badge-status {
+    display: inline-block; margin-top: 8px;
+    background: var(--accent-light); color: var(--accent);
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    padding: 3px 10px; border-radius: 4px; letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+  .info-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    position: relative;
+  }
+  .info-box h3 {
+    font-size: 10px;
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--muted);
+    margin-bottom: 9px;
+  }
+  .info-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; gap: 10px; }
+  .info-row:last-child { margin-bottom: 0; }
+  .info-row label { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .info-row span { font-weight: 600; text-align: right; word-break: break-word; }
+
+  .note-box {
+    background: var(--amber-light);
+    border: 1px solid #e8d88a;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: #7a6200;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    display: none;
+  }
+  .note-box.visible { display: block; }
+  .note-box strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #5a4800;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+
+  /* ───── TABLA ───── */
+  .controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .section-title { font-size: 11px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
+  .row-count { font-family: var(--mono); font-size: 11px; color: var(--muted); background: var(--bg); padding: 3px 8px; border-radius: 4px; }
+
+  .add-form {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    animation: sd 0.2s ease;
+  }
+  .add-form.visible { display: block; }
+  @keyframes sd { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+  .add-form h3 { font-size: 11px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 1px; color: var(--accent); margin-bottom: 10px; }
+  .form-grid { display: grid; grid-template-columns: 140px 1fr 80px 130px; gap: 10px; align-items: end; }
+  .form-actions { display: flex; gap: 8px; margin-top: 10px; justify-content: flex-end; }
+
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    background: var(--accent); color: white;
+    font-family: var(--mono); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 1px;
+    padding: 10px 12px; text-align: left; font-weight: 500;
+  }
+  thead th.right { text-align: right; }
+  thead th.center { text-align: center; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #f6f7fd; }
+  tbody tr.empty-row td { text-align: center; padding: 28px; color: var(--muted); font-style: italic; font-size: 13px; }
+  td { padding: 6px 12px; font-size: 13px; vertical-align: middle; }
+  td.right { text-align: right; }
+  td.center { text-align: center; }
+
+  .editable {
+    width: 100%;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-family: inherit;
+    font-size: 13px;
+    background: transparent;
+    color: var(--text);
+    transition: all 0.15s;
+  }
+  .editable:focus { outline: none; border-color: var(--accent); background: var(--accent-light); }
+  .editable.mono { font-family: var(--mono); font-size: 12px; }
+  .qty-input { width: 58px; text-align: center; }
+  input[type="number"].editable { text-align: right; }
+
+  /* ───── TOTALES ───── */
+  .bottom-section { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+  .totals-config {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    flex: 1; min-width: 280px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .totals-config h3 {
+    font-size: 10px; font-family: var(--mono);
+    text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--muted); margin-bottom: 2px;
+  }
+  .tc-row { display: flex; align-items: center; gap: 10px; }
+  .tc-row label { flex: 1; font-size: 12px; color: var(--muted); }
+  .tc-row input[type="number"] { width: 86px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 5px; font-family: var(--mono); font-size: 13px; text-align: right; }
+  .tc-row input[type="number"]:focus { outline: none; border-color: var(--accent); }
+  .tc-row .suffix { font-size: 11px; color: var(--muted); font-family: var(--mono); width: 22px; }
+
+  .totals-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    min-width: 340px;
+  }
+  .totals-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .totals-row:last-child { border-bottom: none; }
+  .totals-row label { color: var(--muted); font-size: 12px; }
+  .totals-row.discount { background: var(--amber-light); }
+  .totals-row.discount label, .totals-row.discount span { color: var(--amber); }
+  .totals-row.net { background: var(--green-light); }
+  .totals-row.net label, .totals-row.net span { color: var(--green); font-weight: 700; }
+  .totals-row.gross { background: var(--accent); }
+  .totals-row.gross label, .totals-row.gross span { color: white; font-weight: 800; font-size: 15px; }
+  .money { font-family: var(--mono); font-size: 13px; }
+
+  .doc-footer {
+    margin-top: 24px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between;
+    font-size: 11px; font-family: var(--mono);
+    color: var(--muted);
+    gap: 20px; flex-wrap: wrap;
+  }
+
+  /* ───── MODAL DE IMPORTACIÓN ───── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(26,25,23,0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 50; padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: 14px;
+    width: 100%; max-width: 920px;
+    max-height: 90vh;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+  }
+  .modal-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-head h2 { font-size: 17px; font-weight: 800; }
+  .modal-head .sub { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+  .modal-close {
+    background: transparent; border: none; cursor: pointer;
+    font-size: 22px; color: var(--muted); line-height: 1; padding: 4px 8px;
+    border-radius: 6px;
+  }
+  .modal-close:hover { background: var(--bg); color: var(--text); }
+  .modal-body {
+    padding: 22px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .modal-footer {
+    padding: 14px 22px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 12px;
+  }
+  .modal-footer .left-info {
+    font-size: 12px; color: var(--muted); font-family: var(--mono);
+  }
+  .modal-footer .actions { display: flex; gap: 8px; }
+
+  /* Drop zone */
+  .drop-zone {
+    border: 2px dashed var(--border-strong);
+    border-radius: 12px;
+    padding: 36px 20px;
+    text-align: center;
+    background: var(--bg);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-light);
+  }
+  .drop-zone svg { color: var(--muted); margin-bottom: 10px; }
+  .drop-zone.dragover svg { color: var(--accent); }
+  .drop-zone h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .drop-zone p { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  .drop-zone .formats { margin-top: 10px; font-size: 11px; color: var(--muted); }
+
+  /* Loading state */
+  .import-loading {
+    text-align: center; padding: 40px 20px;
+  }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    margin: 0 auto 16px;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .import-loading h3 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .import-loading p { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  .import-loading .progress-step {
+    font-size: 11px; color: var(--accent); margin-top: 8px;
+    font-family: var(--mono); font-weight: 600;
+  }
+
+  /* File preview chips */
+  .file-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .file-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 6px 12px; border-radius: 20px;
+    font-size: 12px; font-family: var(--mono);
+  }
+  .file-chip .file-size { color: var(--muted); }
+  .file-chip button {
+    background: transparent; border: none; cursor: pointer;
+    color: var(--red); font-size: 14px; padding: 0 2px;
+    line-height: 1;
+  }
+
+  /* Review table */
+  .review-summary {
+    background: var(--accent-light);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 10px;
+  }
+  .review-summary strong { color: var(--accent-dark); }
+  .review-summary .source-info { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+  .review-table-wrap {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+  .review-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .review-table thead { position: sticky; top: 0; z-index: 1; }
+  .review-table thead th {
+    background: var(--text); color: white;
+    padding: 9px 10px; text-align: left;
+    font-family: var(--mono); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.8px; font-weight: 500;
+  }
+  .review-table thead th.right { text-align: right; }
+  .review-table thead th.center { text-align: center; }
+  .review-table tbody tr { border-bottom: 1px solid var(--border); }
+  .review-table tbody tr:last-child { border-bottom: none; }
+  .review-table tbody tr:hover { background: var(--bg); }
+  .review-table tbody tr.excluded { opacity: 0.4; background: var(--bg); }
+  .review-table td { padding: 6px 10px; vertical-align: middle; }
+  .review-table td.right { text-align: right; }
+  .review-table td.center { text-align: center; }
+  .review-table input {
+    width: 100%; border: 1px solid transparent;
+    padding: 3px 5px; border-radius: 3px;
+    font-family: inherit; font-size: 12px;
+    background: transparent;
+  }
+  .review-table input:focus {
+    outline: none; border-color: var(--accent); background: var(--accent-light);
+  }
+  .review-table input.mono { font-family: var(--mono); font-size: 11px; }
+  .review-table input[type="number"] { text-align: right; }
+  .review-table input.qty { width: 50px; text-align: center; }
+  .review-table input.price { width: 90px; }
+  .review-table input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+
+  .import-error {
+    background: var(--red-light);
+    border: 1px solid var(--red);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    color: var(--red);
+  }
+  .import-error strong { display: block; margin-bottom: 4px; }
+  .import-error .detail { font-size: 11px; opacity: 0.8; font-family: var(--mono); margin-top: 4px; }
+
+  /* ───── CONVERSIÓN DE MONEDA ───── */
+  .currency-flow {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 18px;
+  }
+  .currency-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .currency-card.target { border-color: var(--accent); background: var(--accent-light); }
+  .currency-card label {
+    font-size: 10px; font-family: var(--mono);
+    color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.8px; display: block; margin-bottom: 6px;
+  }
+  .currency-card select {
+    width: 100%; padding: 8px 10px;
+    border: 1px solid var(--border); border-radius: 6px;
+    font-family: var(--mono); font-size: 14px; font-weight: 700;
+    background: var(--surface);
+  }
+  .currency-card select:focus { outline: none; border-color: var(--accent); }
+  .currency-arrow {
+    display: flex; align-items: center; justify-content: center;
+    padding-bottom: 8px;
+    color: var(--accent);
+  }
+
+  .rate-config {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+  }
+  .rate-config h3 {
+    font-size: 11px; font-family: var(--mono);
+    text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--muted); margin-bottom: 10px;
+  }
+  .rate-equation {
+    display: flex; align-items: center; gap: 10px;
+    flex-wrap: wrap; font-size: 14px; margin-bottom: 8px;
+  }
+  .rate-equation .pill {
+    background: var(--bg); padding: 6px 12px;
+    border-radius: 6px; font-family: var(--mono);
+    font-weight: 700; border: 1px solid var(--border);
+  }
+  .rate-equation .pill.accent {
+    background: var(--accent-light); color: var(--accent-dark);
+    border-color: var(--accent);
+  }
+  .rate-equation .equals { color: var(--muted); }
+  .rate-equation input {
+    width: 140px; padding: 6px 10px;
+    border: 1px solid var(--border-strong); border-radius: 6px;
+    font-family: var(--mono); font-size: 14px; font-weight: 700;
+    text-align: right;
+  }
+  .rate-equation input:focus { outline: none; border-color: var(--accent); }
+  .rate-hint {
+    font-size: 11px; color: var(--muted);
+    font-family: var(--mono); margin-top: 4px;
+  }
+  .rate-hint a { color: var(--accent); text-decoration: none; }
+  .rate-hint a:hover { text-decoration: underline; }
+  .rate-meta {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--muted); font-family: var(--mono);
+    margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);
+  }
+
+  .preview-summary {
+    background: var(--green-light);
+    border: 1px solid var(--green);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 10px;
+  }
+  .preview-summary .label { font-size: 11px; color: var(--green); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.8px; }
+  .preview-summary .value-row { display: flex; gap: 18px; }
+  .preview-summary .value-col { text-align: right; }
+  .preview-summary .from-val { font-size: 12px; color: var(--muted); font-family: var(--mono); text-decoration: line-through; }
+  .preview-summary .to-val { font-size: 16px; font-weight: 800; color: var(--green); font-family: var(--mono); }
+
+  .conversion-options {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    font-size: 12px;
+    display: flex; gap: 18px; flex-wrap: wrap;
+  }
+  .conversion-options label {
+    display: inline-flex; align-items: center; gap: 6px;
+    cursor: pointer; color: var(--text);
+  }
+  .conversion-options input { width: auto; cursor: pointer; }
+
+  .quick-rates {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .quick-rate-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-family: var(--mono); font-size: 11px;
+    cursor: pointer; text-align: left;
+    transition: all 0.15s;
+  }
+  .quick-rate-btn:hover { border-color: var(--accent); background: var(--accent-light); }
+  .quick-rate-btn strong { display: block; color: var(--text); font-size: 12px; }
+  .quick-rate-btn span { color: var(--muted); }
+
+  /* ───── TOAST ───── */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--text); color: white;
+    padding: 12px 18px; border-radius: 8px;
+    font-size: 13px; font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    opacity: 0; transform: translateY(10px);
+    transition: all 0.25s ease;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ───── PRINT / PDF ───── */
+  @media print {
+    @page { size: A4; margin: 12mm; }
+    body { background: white; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .wrapper { max-width: 100%; }
+
+    .app-bar, .config-panel, .add-form,
+    .controls .btn-primary, .controls .row-count,
+    .btn-danger-icon { display: none !important; }
+
+    .controls { margin-bottom: 4px; }
+
+    .doc-header { border-radius: 6px; padding: 12px 16px; }
+    .brand-logo { width: 42px; height: 42px; font-size: 15px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .brand-info h2 { font-size: 17px; }
+    .doc-num { font-size: 18px; }
+
+    .two-col { gap: 8px; margin-bottom: 10px; }
+    .info-box { border-radius: 5px; padding: 9px 12px; }
+    .note-box { margin-bottom: 10px; padding: 9px 12px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+    .table-wrap { border-radius: 5px; }
+    thead th { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 7px 8px; font-size: 9px; }
+    td { padding: 5px 8px; font-size: 11px; }
+    .editable { border: none !important; background: transparent !important; padding: 1px 2px; font-size: 11px; }
+
+    .totals-row.gross, .totals-row.net, .totals-row.discount { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+    .totals-config { display: none; }
+    .totals-box { min-width: 100%; }
+
+    .bottom-section { gap: 12px; justify-content: flex-end; }
+    .totals-row { padding: 7px 14px; font-size: 12px; }
+    .totals-row.gross label, .totals-row.gross span { font-size: 13px; }
+
+    .doc-footer { margin-top: 14px; padding-top: 10px; }
+  }
+
+  @media (max-width: 820px) {
+    .two-col, .field-grid, .field-grid.three { grid-template-columns: 1fr; }
+    .field.span-2 { grid-column: span 1; }
+    .form-grid { grid-template-columns: 1fr 1fr; }
+    .doc-header { flex-direction: column; }
+    .doc-meta-right { text-align: left; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- ───────── BARRA SUPERIOR ───────── -->
+  <div class="app-bar">
+    <div class="app-title">
+      <div class="app-title-dot"></div>
+      <div>
+        <h1>Sistema de Cotizaciones</h1>
+        <small>Oftalmonet · Editor v1.0</small>
+      </div>
+    </div>
+    <div class="app-actions">
+      <button class="btn btn-ghost" onclick="toggleConfig()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Personalizar
+      </button>
+      <button class="btn btn-ghost" onclick="newQuote()" title="Nueva cotización en blanco">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        Nueva
+      </button>
+      <button class="btn btn-primary" onclick="openImport()" title="Importar items desde PDF o imagen">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Importar PDF / Imagen
+      </button>
+      <button class="btn btn-ghost" onclick="openCurrency()" title="Convertir monedas">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+        Convertir moneda
+      </button>
+      <button class="btn btn-ghost" onclick="exportJSON()" title="Exportar respaldo en JSON">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Respaldar
+      </button>
+      <label class="btn btn-ghost" style="cursor:pointer;margin:0">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Cargar
+        <input type="file" accept=".json" onchange="importJSON(event)" style="display:none">
+      </label>
+      <button class="btn btn-pdf" onclick="exportPDF()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Exportar PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- ───────── PANEL DE PERSONALIZACIÓN ───────── -->
+  <div class="config-panel" id="configPanel">
+    <div class="config-tabs">
+      <button class="config-tab active" onclick="switchTab('company')">Mi Empresa</button>
+      <button class="config-tab" onclick="switchTab('provider')">Proveedor</button>
+      <button class="config-tab" onclick="switchTab('quote')">Cotización</button>
+      <button class="config-tab" onclick="switchTab('conditions')">Condiciones</button>
+      <button class="config-tab" onclick="switchTab('note')">Notas</button>
+    </div>
+    <div class="config-content">
+
+      <!-- TAB: Mi Empresa -->
+      <div class="config-pane active" data-pane="company">
+        <div class="field-grid full">
+          <div class="field">
+            <label>Logo de la empresa</label>
+            <div class="logo-uploader">
+              <div class="logo-preview" id="logoPreview">Of</div>
+              <div class="logo-actions">
+                <p>PNG, JPG o SVG. Si no subes uno se usarán las iniciales.</p>
+                <label class="btn btn-primary btn-sm" style="cursor:pointer;margin:0">
+                  Subir logo
+                  <input type="file" accept="image/*" onchange="uploadLogo(event)" style="display:none">
+                </label>
+                <button class="btn btn-cancel btn-sm" onclick="removeLogo()">Quitar logo</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <br>
+        <div class="field-grid">
+          <div class="field">
+            <label>Nombre de la empresa</label>
+            <input id="cfg-company-name" placeholder="Oftalmonet SPA" oninput="updateConfig('company.name', this.value)">
+          </div>
+          <div class="field mono">
+            <label>RUT / Tax ID</label>
+            <input id="cfg-company-tax" placeholder="78157265-9" oninput="updateConfig('company.tax', this.value)">
+          </div>
+          <div class="field span-2">
+            <label>Dirección completa</label>
+            <input id="cfg-company-address" placeholder="PJE P A Hurtado 540, Región de Ñuble, Chile" oninput="updateConfig('company.address', this.value)">
+          </div>
+          <div class="field mono">
+            <label>Teléfono</label>
+            <input id="cfg-company-phone" placeholder="+56 2 2335 1810" oninput="updateConfig('company.phone', this.value)">
+          </div>
+          <div class="field mono">
+            <label>Email</label>
+            <input id="cfg-company-email" placeholder="contacto@oftalmonet.cl" oninput="updateConfig('company.email', this.value)">
+          </div>
+          <div class="field span-2 mono">
+            <label>Sitio web (opcional)</label>
+            <input id="cfg-company-web" placeholder="www.oftalmonet.cl" oninput="updateConfig('company.web', this.value)">
+          </div>
+        </div>
+        <br>
+        <div class="field-grid">
+          <div class="field">
+            <label>Color principal de marca</label>
+            <div class="color-row">
+              <input type="color" id="cfg-color" class="color-picker" value="#5B6FCC" oninput="updateAccent(this.value)">
+              <input type="text" id="cfg-color-text" class="color-input" value="#5B6FCC" oninput="updateAccent(this.value)" placeholder="#5B6FCC" style="font-family:var(--mono)">
+            </div>
+            <span class="field-hint">Aplica a logo, cabecera de tabla y totales.</span>
+          </div>
+          <div class="field">
+            <label>Tipo de documento</label>
+            <select id="cfg-doc-type" onchange="updateConfig('quote.docType', this.value)">
+              <option value="Cotización">Cotización</option>
+              <option value="Solicitud de Cotización">Solicitud de Cotización</option>
+              <option value="Orden de Compra">Orden de Compra</option>
+              <option value="Presupuesto">Presupuesto</option>
+              <option value="Proforma">Proforma</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Proveedor -->
+      <div class="config-pane" data-pane="provider">
+        <div class="field-grid">
+          <div class="field span-2">
+            <label>Nombre del proveedor</label>
+            <input id="cfg-provider-name" placeholder="ATM Chile" oninput="updateConfig('provider.name', this.value)">
+          </div>
+          <div class="field">
+            <label>Persona de contacto</label>
+            <input id="cfg-provider-contact" placeholder="Yeimy Castro" oninput="updateConfig('provider.contact', this.value)">
+          </div>
+          <div class="field mono">
+            <label>Email</label>
+            <input id="cfg-provider-email" placeholder="ycastro@atm.cl" oninput="updateConfig('provider.email', this.value)">
+          </div>
+          <div class="field mono">
+            <label>Teléfono</label>
+            <input id="cfg-provider-phone" placeholder="" oninput="updateConfig('provider.phone', this.value)">
+          </div>
+          <div class="field mono">
+            <label>RUT / Tax ID</label>
+            <input id="cfg-provider-tax" placeholder="" oninput="updateConfig('provider.tax', this.value)">
+          </div>
+          <div class="field span-2">
+            <label>Dirección</label>
+            <input id="cfg-provider-address" placeholder="Av. Campo de Deportes 715, Ñuñoa, Santiago" oninput="updateConfig('provider.address', this.value)">
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Cotización -->
+      <div class="config-pane" data-pane="quote">
+        <div class="field-grid three">
+          <div class="field mono">
+            <label>Número de cotización</label>
+            <input id="cfg-quote-number" placeholder="00026391" oninput="updateConfig('quote.number', this.value)">
+          </div>
+          <div class="field">
+            <label>Fecha de emisión</label>
+            <input type="date" id="cfg-quote-date" oninput="updateConfig('quote.date', this.value)">
+          </div>
+          <div class="field">
+            <label>Fecha de vencimiento</label>
+            <input type="date" id="cfg-quote-expiry" oninput="updateConfig('quote.expiry', this.value)">
+          </div>
+          <div class="field">
+            <label>Moneda</label>
+            <select id="cfg-currency" onchange="updateConfig('quote.currency', this.value)">
+              <option value="USD">USD - Dólar estadounidense</option>
+              <option value="CLP">CLP - Peso chileno</option>
+              <option value="EUR">EUR - Euro</option>
+              <option value="COP">COP - Peso colombiano</option>
+              <option value="PEN">PEN - Sol peruano</option>
+              <option value="MXN">MXN - Peso mexicano</option>
+              <option value="ARS">ARS - Peso argentino</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Símbolo de moneda</label>
+            <input id="cfg-currency-symbol" placeholder="USD" oninput="updateConfig('quote.currencySymbol', this.value)">
+            <span class="field-hint">Texto que aparece antes del monto.</span>
+          </div>
+          <div class="field">
+            <label>Estado / Etiqueta</label>
+            <input id="cfg-quote-status" placeholder="Moneda: USD" oninput="updateConfig('quote.status', this.value)">
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Condiciones -->
+      <div class="config-pane" data-pane="conditions">
+        <p class="field-hint" style="margin-bottom:10px">Agrega, edita o elimina cualquier línea del recuadro de condiciones.</p>
+        <div id="conditionsList"></div>
+        <button class="btn btn-ghost btn-sm" onclick="addCondition()" style="margin-top:8px">＋ Agregar condición</button>
+      </div>
+
+      <!-- TAB: Notas -->
+      <div class="config-pane" data-pane="note">
+        <div class="field-grid full">
+          <div class="field">
+            <label>Título de la nota (opcional)</label>
+            <input id="cfg-note-title" placeholder="Requisitos técnicos del proveedor" oninput="updateConfig('note.title', this.value)">
+          </div>
+          <div class="field">
+            <label>Contenido de la nota</label>
+            <textarea id="cfg-note-body" rows="6" placeholder="Deja vacío para ocultar este recuadro." oninput="updateConfig('note.body', this.value)"></textarea>
+            <span class="field-hint">Soporta saltos de línea. Deja en blanco para ocultar el recuadro completo.</span>
+          </div>
+          <div class="field">
+            <label>Pie de página (parte izquierda)</label>
+            <input id="cfg-footer-left" placeholder="Oftalmonet SPA · RUT 78157265-9" oninput="updateConfig('footer.left', this.value)">
+          </div>
+          <div class="field">
+            <label>Pie de página (parte derecha)</label>
+            <input id="cfg-footer-right" placeholder="Documento generado el 16/05/2026" oninput="updateConfig('footer.right', this.value)">
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       VISTA DEL DOCUMENTO
+  ═══════════════════════════════════════ -->
+
+  <!-- Cabecera -->
+  <div class="doc-header">
+    <div class="brand">
+      <div class="brand-logo" id="brandLogo">Of</div>
+      <div class="brand-info">
+        <h2 id="brandName">Oftalmonet SPA</h2>
+        <div class="line" id="brandDetails"></div>
+      </div>
+    </div>
+    <div class="doc-meta-right">
+      <div class="doc-type" id="docTypeLabel">Cotización</div>
+      <div class="doc-num" id="docNumber">N° 00026391</div>
+      <div class="meta-line" id="docDate">Fecha: 16/05/2026</div>
+      <div class="meta-line" id="docExpiry">Vence: 31/12/2026</div>
+      <div class="badge-status" id="docStatus">Moneda: USD</div>
+    </div>
+  </div>
+
+  <!-- Proveedor + Condiciones -->
+  <div class="two-col">
+    <div class="info-box">
+      <h3>Proveedor</h3>
+      <div id="providerInfo"></div>
+    </div>
+    <div class="info-box">
+      <h3>Condiciones</h3>
+      <div id="conditionsInfo"></div>
+    </div>
+  </div>
+
+  <!-- Nota -->
+  <div class="note-box" id="noteBox">
+    <strong id="noteTitle"></strong>
+    <span id="noteBody"></span>
+  </div>
+
+  <!-- Controles tabla -->
+  <div class="controls">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="section-title">Detalle de productos</span>
+      <span class="row-count" id="rowCount">0 ítems</span>
+    </div>
+    <button class="btn btn-primary" onclick="toggleAddForm()">＋ Agregar ítem</button>
+  </div>
+
+  <!-- Form agregar -->
+  <div class="add-form" id="addForm">
+    <h3>Nuevo ítem</h3>
+    <div class="form-grid">
+      <div class="field mono">
+        <label>Código</label>
+        <input id="nCodigo" placeholder="COD-001">
+      </div>
+      <div class="field">
+        <label>Descripción</label>
+        <input id="nDesc" placeholder="Nombre del producto">
+      </div>
+      <div class="field">
+        <label>Cantidad</label>
+        <input id="nQty" type="number" min="1" value="1">
+      </div>
+      <div class="field mono">
+        <label>Precio unitario</label>
+        <input id="nPrice" type="number" min="0" step="0.01" placeholder="0.00">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-cancel" onclick="toggleAddForm()">Cancelar</button>
+      <button class="btn btn-primary" onclick="addRow()">Agregar</button>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:32px">#</th>
+          <th style="width:138px">Código</th>
+          <th>Descripción</th>
+          <th class="right" style="width:68px">Cant.</th>
+          <th class="right" style="width:130px">P. Unit.</th>
+          <th class="right" style="width:130px">Total</th>
+          <th class="center" style="width:46px">—</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Totales -->
+  <div class="bottom-section">
+    <div class="totals-config">
+      <h3>Ajustes de totales</h3>
+      <div class="tc-row">
+        <label>Descuento cabecera</label>
+        <input type="number" id="discountPct" value="0" min="0" max="100" step="0.01" oninput="updateConfig('totals.discount', +this.value); recalc()">
+        <span class="suffix">%</span>
+      </div>
+      <div class="tc-row">
+        <label>Tasa de impuestos (IVA)</label>
+        <input type="number" id="taxPct" value="19" min="0" max="100" step="0.01" oninput="updateConfig('totals.tax', +this.value); recalc()">
+        <span class="suffix">%</span>
+      </div>
+      <div class="tc-row">
+        <label>Mostrar línea de impuestos</label>
+        <input type="checkbox" id="showTax" checked onchange="updateConfig('totals.showTax', this.checked); recalc()" style="width:auto">
+      </div>
+    </div>
+    <div class="totals-box">
+      <div class="totals-row">
+        <label>Subtotal</label>
+        <span class="money" id="tSubtotal"></span>
+      </div>
+      <div class="totals-row discount" id="rowDiscount">
+        <label>Descuento (<span id="tDiscPct">0</span>%)</label>
+        <span class="money" id="tDiscount"></span>
+      </div>
+      <div class="totals-row net" id="rowNet">
+        <label>Precio neto</label>
+        <span class="money" id="tNeto"></span>
+      </div>
+      <div class="totals-row" id="rowTax">
+        <label>IVA <span id="tTaxPct">19</span>%</label>
+        <span class="money" id="tIva"></span>
+      </div>
+      <div class="totals-row gross">
+        <label>TOTAL</label>
+        <span class="money" id="tTotal"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="doc-footer">
+    <span id="footerLeft"></span>
+    <span id="footerRight"></span>
+  </div>
+
+</div>
+
+<!-- ═══════ MODAL CONVERTIR MONEDA ═══════ -->
+<div class="modal-overlay" id="currencyModal">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-head">
+      <div>
+        <h2>Convertir moneda</h2>
+        <div class="sub">Cambia los precios de toda la cotización a otra moneda</div>
+      </div>
+      <button class="modal-close" onclick="closeCurrency()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Selector origen / destino -->
+      <div class="currency-flow">
+        <div class="currency-card">
+          <label>De (moneda actual)</label>
+          <select id="curFrom" onchange="updateConversion()">
+            <option value="USD">USD · Dólar estadounidense</option>
+            <option value="CLP">CLP · Peso chileno</option>
+            <option value="EUR">EUR · Euro</option>
+            <option value="COP">COP · Peso colombiano</option>
+            <option value="PEN">PEN · Sol peruano</option>
+            <option value="MXN">MXN · Peso mexicano</option>
+            <option value="ARS">ARS · Peso argentino</option>
+            <option value="BRL">BRL · Real brasileño</option>
+            <option value="GBP">GBP · Libra esterlina</option>
+            <option value="JPY">JPY · Yen japonés</option>
+          </select>
+        </div>
+        <div class="currency-arrow">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </div>
+        <div class="currency-card target">
+          <label>A (nueva moneda)</label>
+          <select id="curTo" onchange="updateConversion()">
+            <option value="CLP">CLP · Peso chileno</option>
+            <option value="USD">USD · Dólar estadounidense</option>
+            <option value="EUR">EUR · Euro</option>
+            <option value="COP">COP · Peso colombiano</option>
+            <option value="PEN">PEN · Sol peruano</option>
+            <option value="MXN">MXN · Peso mexicano</option>
+            <option value="ARS">ARS · Peso argentino</option>
+            <option value="BRL">BRL · Real brasileño</option>
+            <option value="GBP">GBP · Libra esterlina</option>
+            <option value="JPY">JPY · Yen japonés</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tasa de cambio -->
+      <div class="rate-config">
+        <h3>Tasa de cambio</h3>
+        <div class="rate-equation">
+          <span class="pill" id="ratePill1">1 USD</span>
+          <span class="equals">=</span>
+          <input type="number" id="rateInput" min="0" step="0.000001" value="1" oninput="onRateChange()">
+          <span class="pill accent" id="ratePill2">CLP</span>
+        </div>
+        <div class="rate-hint">
+          💡 Para tasas actualizadas consulta
+          <a href="https://www.google.com/search?q=USD+to+CLP+exchange+rate" target="_blank" rel="noopener" id="rateSourceLink">Google Finance</a>,
+          <a href="https://www.xe.com" target="_blank" rel="noopener">XE.com</a> o tu banco. La tasa se guarda automáticamente para reusar.
+        </div>
+        <div id="quickRates" class="quick-rates"></div>
+        <div class="rate-meta">
+          <span>Inverso: 1 <span id="metaTo">CLP</span> = <span id="metaInverse">—</span> <span id="metaFrom">USD</span></span>
+          <span id="rateLastUpdate"></span>
+        </div>
+      </div>
+
+      <!-- Opciones de conversión -->
+      <div class="conversion-options">
+        <label>
+          <input type="checkbox" id="optUpdateCurrency" checked>
+          Cambiar también la moneda de la cotización
+        </label>
+        <label>
+          <input type="checkbox" id="optRoundPrices" onchange="refreshPreview()">
+          Redondear precios resultantes
+        </label>
+      </div>
+
+      <!-- Vista previa del total -->
+      <div class="preview-summary">
+        <div class="label">Vista previa del total convertido</div>
+        <div class="value-row">
+          <div class="value-col">
+            <div class="from-val" id="previewFrom">—</div>
+            <div class="to-val" id="previewTo">—</div>
+          </div>
+        </div>
+      </div>
+
+      <p style="font-size:12px;color:var(--muted);font-family:var(--mono);text-align:center">
+        Se convertirán <strong id="previewCount">0</strong> items multiplicando cada precio unitario por la tasa.
+      </p>
+    </div>
+
+    <div class="modal-footer">
+      <div class="left-info">⚠ Esta acción modificará los precios de los items.</div>
+      <div class="actions">
+        <button class="btn btn-cancel" onclick="closeCurrency()">Cancelar</button>
+        <button class="btn btn-primary" onclick="applyConversion()">Aplicar conversión</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ MODAL IMPORTAR ═══════ -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h2>Importar items desde cotización externa</h2>
+        <div class="sub">Sube un PDF o imagen y los items se extraerán automáticamente</div>
+      </div>
+      <button class="modal-close" onclick="closeImport()">✕</button>
+    </div>
+
+    <div class="modal-body" id="modalBody">
+      <!-- Estado 1: Drop zone (default) -->
+      <div id="state-dropzone">
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('importFileInput').click()">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <h3>Arrastra un archivo aquí o haz clic para seleccionar</h3>
+          <p>Cotizaciones, facturas o listas de precios de cualquier proveedor</p>
+          <div class="formats">Formatos: PDF, JPG, PNG, WebP · Máx 32 MB</div>
+        </div>
+        <input type="file" id="importFileInput" accept=".pdf,image/*" style="display:none" onchange="handleFileSelect(event)">
+        <div class="file-chips" id="fileChips"></div>
+      </div>
+
+      <!-- Estado 2: Procesando -->
+      <div id="state-loading" style="display:none">
+        <div class="import-loading">
+          <div class="spinner"></div>
+          <h3>Extrayendo items del documento</h3>
+          <p>Claude está leyendo el archivo y identificando productos…</p>
+          <div class="progress-step" id="loadingStep">Preparando archivo</div>
+        </div>
+      </div>
+
+      <!-- Estado 3: Revisión -->
+      <div id="state-review" style="display:none">
+        <div class="review-summary">
+          <div>
+            <strong id="reviewCount">0 items detectados</strong>
+            <div class="source-info" id="reviewSource"></div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost btn-sm" onclick="toggleAllReview(true)">Seleccionar todos</button>
+            <button class="btn btn-ghost btn-sm" onclick="toggleAllReview(false)">Ninguno</button>
+          </div>
+        </div>
+        <div class="review-table-wrap">
+          <table class="review-table">
+            <thead>
+              <tr>
+                <th class="center" style="width:36px">✓</th>
+                <th style="width:110px">Código</th>
+                <th>Descripción</th>
+                <th class="right" style="width:55px">Cant.</th>
+                <th class="right" style="width:100px">P. Unit.</th>
+                <th class="right" style="width:100px">Total</th>
+              </tr>
+            </thead>
+            <tbody id="reviewBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Estado 4: Error -->
+      <div id="state-error" style="display:none">
+        <div class="import-error">
+          <strong>No se pudieron extraer items</strong>
+          <span id="errorMsg"></span>
+          <div class="detail" id="errorDetail"></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="resetImport()">Intentar con otro archivo</button>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <div class="left-info" id="footerInfo">Los items extraídos se podrán revisar antes de añadirlos.</div>
+      <div class="actions">
+        <button class="btn btn-cancel" onclick="closeImport()">Cancelar</button>
+        <button class="btn btn-primary" id="processBtn" onclick="processFile()" disabled>Extraer items</button>
+        <button class="btn btn-primary" id="addItemsBtn" onclick="addSelectedItems()" style="display:none">Agregar seleccionados</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Guardado</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   ESTADO Y PERSISTENCIA
+═══════════════════════════════════════════ */
+const DEFAULT_CONFIG = {
+  company: {
+    name: 'Oftalmonet SPA',
+    tax: '78157265-9',
+    address: 'PJE P A Hurtado 540, Región de Ñuble, Chile',
+    phone: '+56 2 2335 1810',
+    email: 'contacto@oftalmonet.cl',
+    web: 'www.oftalmonet.cl',
+    logo: null,
+    color: '#5B6FCC',
+  },
+  provider: {
+    name: 'ATM Chile',
+    contact: 'Yeimy Castro',
+    email: 'ycastro@atm.cl',
+    phone: '',
+    tax: '',
+    address: 'Av. Campo de Deportes 715, Ñuñoa, Santiago',
+  },
+  quote: {
+    docType: 'Cotización',
+    number: '00000001',
+    date: new Date().toISOString().slice(0,10),
+    expiry: '',
+    currency: 'USD',
+    currencySymbol: 'USD',
+    status: 'Moneda: USD',
+  },
+  conditions: [
+    { label: 'Garantía pactada', value: '1 año' },
+    { label: 'Visitas garantía/año', value: '1 visita' },
+    { label: 'Mantenimiento preventivo', value: 'Sí' },
+  ],
+  note: {
+    title: '',
+    body: '',
+  },
+  footer: {
+    left: 'Oftalmonet SPA · RUT 78157265-9',
+    right: '',
+  },
+  totals: {
+    discount: 0,
+    tax: 19,
+    showTax: true,
+  },
+  rows: [],
+};
+
+const STORAGE_KEY = 'oftalmonet_quote_config_v1';
+let config = loadConfig();
+let nextRowId = (config.rows.reduce((m, r) => Math.max(m, r.id || 0), 0) || 0) + 1;
+
+function loadConfig() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return structuredClone(DEFAULT_CONFIG);
+    const parsed = JSON.parse(raw);
+    return deepMerge(structuredClone(DEFAULT_CONFIG), parsed);
+  } catch (e) {
+    return structuredClone(DEFAULT_CONFIG);
+  }
+}
+
+function deepMerge(target, source) {
+  for (const key in source) {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      target[key] = deepMerge(target[key] || {}, source[key]);
+    } else {
+      target[key] = source[key];
+    }
+  }
+  return target;
+}
+
+function saveConfig() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+  } catch (e) {
+    showToast('No se pudo guardar (almacenamiento lleno)');
+  }
+}
+
+function updateConfig(path, value) {
+  const keys = path.split('.');
+  let obj = config;
+  for (let i = 0; i < keys.length - 1; i++) obj = obj[keys[i]];
+  obj[keys[keys.length - 1]] = value;
+  saveConfig();
+  renderDocument();
+}
+
+/* ═══════════════════════════════════════════
+   RENDERIZADO DEL DOCUMENTO
+═══════════════════════════════════════════ */
+function fmt(n) {
+  const sym = config.quote.currencySymbol || config.quote.currency || '';
+  return (sym ? sym + ' ' : '') + Number(n).toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function formatDate(iso) {
+  if (!iso) return '—';
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function initials(name) {
+  if (!name) return '?';
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+function renderDocument() {
+  // Marca / logo
+  const logoEl = document.getElementById('brandLogo');
+  const logoPreviewEl = document.getElementById('logoPreview');
+  if (config.company.logo) {
+    logoEl.innerHTML = `<img src="${config.company.logo}" alt="logo">`;
+    logoPreviewEl.innerHTML = `<img src="${config.company.logo}" alt="logo">`;
+  } else {
+    const init = initials(config.company.name);
+    logoEl.textContent = init;
+    logoPreviewEl.textContent = init;
+  }
+
+  document.getElementById('brandName').textContent = config.company.name || 'Sin nombre';
+
+  const brandLines = [];
+  if (config.company.tax) brandLines.push('RUT ' + config.company.tax);
+  if (config.company.address) brandLines.push(config.company.address);
+  const contactLine = [config.company.phone, config.company.email, config.company.web].filter(Boolean).join(' · ');
+  if (contactLine) brandLines.push(contactLine);
+  document.getElementById('brandDetails').textContent = brandLines.join('\n');
+
+  // Documento
+  document.getElementById('docTypeLabel').textContent = config.quote.docType || 'Cotización';
+  document.getElementById('docNumber').textContent = 'N° ' + (config.quote.number || '—');
+  document.getElementById('docDate').textContent = 'Fecha: ' + formatDate(config.quote.date);
+  if (config.quote.expiry) {
+    document.getElementById('docExpiry').textContent = 'Vence: ' + formatDate(config.quote.expiry);
+    document.getElementById('docExpiry').style.display = '';
+  } else {
+    document.getElementById('docExpiry').style.display = 'none';
+  }
+  document.getElementById('docStatus').textContent = config.quote.status || ('Moneda: ' + config.quote.currency);
+
+  // Proveedor
+  const pBox = document.getElementById('providerInfo');
+  pBox.innerHTML = '';
+  const pFields = [
+    ['Empresa', config.provider.name],
+    ['Contacto', config.provider.contact],
+    ['Email', config.provider.email],
+    ['Teléfono', config.provider.phone],
+    ['RUT', config.provider.tax],
+    ['Dirección', config.provider.address],
+  ];
+  pFields.forEach(([k, v]) => {
+    if (!v) return;
+    const row = document.createElement('div');
+    row.className = 'info-row';
+    row.innerHTML = `<label>${esc(k)}</label><span>${esc(v)}</span>`;
+    pBox.appendChild(row);
+  });
+  if (!pBox.children.length) {
+    pBox.innerHTML = '<div style="color:var(--muted);font-style:italic;font-size:12px">Sin datos del proveedor</div>';
+  }
+
+  // Condiciones
+  const cBox = document.getElementById('conditionsInfo');
+  cBox.innerHTML = '';
+  config.conditions.forEach(c => {
+    if (!c.label && !c.value) return;
+    const row = document.createElement('div');
+    row.className = 'info-row';
+    row.innerHTML = `<label>${esc(c.label)}</label><span>${esc(c.value)}</span>`;
+    cBox.appendChild(row);
+  });
+  if (!cBox.children.length) {
+    cBox.innerHTML = '<div style="color:var(--muted);font-style:italic;font-size:12px">Sin condiciones</div>';
+  }
+
+  // Nota
+  const noteEl = document.getElementById('noteBox');
+  if (config.note.body && config.note.body.trim()) {
+    noteEl.classList.add('visible');
+    document.getElementById('noteTitle').textContent = config.note.title || 'Nota';
+    document.getElementById('noteBody').textContent = config.note.body;
+  } else {
+    noteEl.classList.remove('visible');
+  }
+
+  // Footer
+  document.getElementById('footerLeft').textContent = config.footer.left || '';
+  document.getElementById('footerRight').textContent = config.footer.right || '';
+
+  // Tabla
+  renderTable();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  if (!config.rows.length) {
+    const tr = document.createElement('tr');
+    tr.className = 'empty-row';
+    tr.innerHTML = '<td colspan="7">No hay ítems. Haz clic en "＋ Agregar ítem" para comenzar.</td>';
+    tbody.appendChild(tr);
+  } else {
+    config.rows.forEach((row, idx) => {
+      const total = row.qty * row.price;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="color:var(--muted);font-family:var(--mono);font-size:11px">${idx + 1}</td>
+        <td><input class="editable mono" style="width:126px" value="${esc(row.code)}" onchange="updateField(${row.id},'code',this.value)"></td>
+        <td><input class="editable" style="width:100%" value="${esc(row.desc)}" onchange="updateField(${row.id},'desc',this.value)"></td>
+        <td class="right"><input class="editable mono qty-input" type="number" min="0" step="any" value="${row.qty}" oninput="updateField(${row.id},'qty',+this.value || 0)"></td>
+        <td class="right"><input class="editable mono" type="number" min="0" step="0.01" style="width:110px" value="${Number(row.price).toFixed(2)}" oninput="updateField(${row.id},'price',+this.value || 0)"></td>
+        <td class="right money" id="tot-${row.id}" style="font-weight:600">${fmt(total)}</td>
+        <td class="center"><button class="btn-danger-icon" onclick="removeRow(${row.id})">✕</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+  document.getElementById('rowCount').textContent = config.rows.length + ' ítem' + (config.rows.length !== 1 ? 's' : '');
+  recalc();
+}
+
+function updateField(id, field, val) {
+  const row = config.rows.find(r => r.id === id);
+  if (!row) return;
+  row[field] = val;
+  saveConfig();
+  const cell = document.getElementById('tot-' + id);
+  if (cell) cell.textContent = fmt((row.qty || 0) * (row.price || 0));
+  recalc();
+}
+
+function removeRow(id) {
+  config.rows = config.rows.filter(r => r.id !== id);
+  saveConfig();
+  renderTable();
+}
+
+function addRow() {
+  const code  = document.getElementById('nCodigo').value.trim() || 'NUEVO';
+  const desc  = document.getElementById('nDesc').value.trim()   || 'Descripción';
+  const qty   = parseFloat(document.getElementById('nQty').value) || 1;
+  const price = parseFloat(document.getElementById('nPrice').value) || 0;
+  config.rows.push({ id: nextRowId++, code, desc, qty, price });
+  saveConfig();
+  ['nCodigo','nDesc','nPrice'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('nQty').value = 1;
+  toggleAddForm();
+  renderTable();
+}
+
+function toggleAddForm() {
+  document.getElementById('addForm').classList.toggle('visible');
+}
+
+function recalc() {
+  const subtotal  = config.rows.reduce((s, r) => s + (r.qty || 0) * (r.price || 0), 0);
+  const discPct   = +config.totals.discount || 0;
+  const discount  = subtotal * discPct / 100;
+  const neto      = subtotal - discount;
+  const taxPct    = +config.totals.tax || 0;
+  const iva       = config.totals.showTax ? neto * taxPct / 100 : 0;
+  const total     = neto + iva;
+
+  document.getElementById('tSubtotal').textContent = fmt(subtotal);
+  document.getElementById('tDiscount').textContent = '- ' + fmt(discount);
+  document.getElementById('tNeto').textContent     = fmt(neto);
+  document.getElementById('tIva').textContent      = fmt(iva);
+  document.getElementById('tTotal').textContent    = fmt(total);
+  document.getElementById('tDiscPct').textContent  = discPct;
+  document.getElementById('tTaxPct').textContent   = taxPct;
+
+  document.getElementById('rowDiscount').style.display = discPct > 0 ? '' : 'none';
+  document.getElementById('rowTax').style.display      = config.totals.showTax ? '' : 'none';
+  // Si no hay descuento ni impuesto, ocultar la fila "neto" redundante
+  document.getElementById('rowNet').style.display = (discPct > 0 || config.totals.showTax) ? '' : 'none';
+}
+
+/* ═══════════════════════════════════════════
+   PERSONALIZACIÓN UI
+═══════════════════════════════════════════ */
+function toggleConfig() {
+  document.getElementById('configPanel').classList.toggle('open');
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.config-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.config-pane').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.querySelector(`.config-pane[data-pane="${name}"]`).classList.add('active');
+}
+
+function fillConfigFields() {
+  // Mi empresa
+  document.getElementById('cfg-company-name').value    = config.company.name || '';
+  document.getElementById('cfg-company-tax').value     = config.company.tax || '';
+  document.getElementById('cfg-company-address').value = config.company.address || '';
+  document.getElementById('cfg-company-phone').value   = config.company.phone || '';
+  document.getElementById('cfg-company-email').value   = config.company.email || '';
+  document.getElementById('cfg-company-web').value     = config.company.web || '';
+  document.getElementById('cfg-color').value           = config.company.color || '#5B6FCC';
+  document.getElementById('cfg-color-text').value      = config.company.color || '#5B6FCC';
+
+  // Proveedor
+  document.getElementById('cfg-provider-name').value    = config.provider.name || '';
+  document.getElementById('cfg-provider-contact').value = config.provider.contact || '';
+  document.getElementById('cfg-provider-email').value   = config.provider.email || '';
+  document.getElementById('cfg-provider-phone').value   = config.provider.phone || '';
+  document.getElementById('cfg-provider-tax').value     = config.provider.tax || '';
+  document.getElementById('cfg-provider-address').value = config.provider.address || '';
+
+  // Cotización
+  document.getElementById('cfg-doc-type').value         = config.quote.docType || 'Cotización';
+  document.getElementById('cfg-quote-number').value     = config.quote.number || '';
+  document.getElementById('cfg-quote-date').value       = config.quote.date || '';
+  document.getElementById('cfg-quote-expiry').value     = config.quote.expiry || '';
+  document.getElementById('cfg-currency').value         = config.quote.currency || 'USD';
+  document.getElementById('cfg-currency-symbol').value  = config.quote.currencySymbol || 'USD';
+  document.getElementById('cfg-quote-status').value     = config.quote.status || '';
+
+  // Notas
+  document.getElementById('cfg-note-title').value = config.note.title || '';
+  document.getElementById('cfg-note-body').value  = config.note.body || '';
+
+  // Footer
+  document.getElementById('cfg-footer-left').value  = config.footer.left || '';
+  document.getElementById('cfg-footer-right').value = config.footer.right || '';
+
+  // Totales
+  document.getElementById('discountPct').value = config.totals.discount || 0;
+  document.getElementById('taxPct').value      = config.totals.tax || 0;
+  document.getElementById('showTax').checked   = !!config.totals.showTax;
+
+  renderConditions();
+  updateAccent(config.company.color || '#5B6FCC', true);
+}
+
+function renderConditions() {
+  const list = document.getElementById('conditionsList');
+  list.innerHTML = '';
+  config.conditions.forEach((c, idx) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:center';
+    row.innerHTML = `
+      <input value="${esc(c.label)}" placeholder="Etiqueta" oninput="updateCondition(${idx},'label',this.value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:5px;font-size:13px">
+      <input value="${esc(c.value)}" placeholder="Valor" oninput="updateCondition(${idx},'value',this.value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:5px;font-size:13px">
+      <button class="btn-danger-icon" onclick="removeCondition(${idx})">✕</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function updateCondition(idx, field, value) {
+  config.conditions[idx][field] = value;
+  saveConfig();
+  renderDocument();
+}
+
+function addCondition() {
+  config.conditions.push({ label: '', value: '' });
+  saveConfig();
+  renderConditions();
+  renderDocument();
+}
+
+function removeCondition(idx) {
+  config.conditions.splice(idx, 1);
+  saveConfig();
+  renderConditions();
+  renderDocument();
+}
+
+function updateAccent(color, skipSync) {
+  if (!/^#[0-9a-fA-F]{6}$/.test(color)) return;
+  config.company.color = color;
+  document.documentElement.style.setProperty('--accent', color);
+  // generar accent-dark y accent-light desde el color
+  document.documentElement.style.setProperty('--accent-dark', shade(color, -25));
+  document.documentElement.style.setProperty('--accent-light', shade(color, 88, true));
+  if (!skipSync) {
+    document.getElementById('cfg-color').value = color;
+    document.getElementById('cfg-color-text').value = color;
+    saveConfig();
+  }
+}
+
+function shade(hex, percent, towardWhite) {
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  if (towardWhite) {
+    const mix = (c) => Math.round(c + (255 - c) * (percent / 100));
+    return '#' + [mix(r), mix(g), mix(b)].map(c => c.toString(16).padStart(2,'0')).join('');
+  } else {
+    const adj = (c) => Math.max(0, Math.min(255, Math.round(c + (percent / 100) * 255)));
+    return '#' + [adj(r), adj(g), adj(b)].map(c => c.toString(16).padStart(2,'0')).join('');
+  }
+}
+
+function uploadLogo(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 500 * 1024) {
+    showToast('Logo demasiado grande (máx 500 KB)');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    config.company.logo = e.target.result;
+    saveConfig();
+    renderDocument();
+    showToast('Logo actualizado');
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeLogo() {
+  config.company.logo = null;
+  saveConfig();
+  renderDocument();
+  showToast('Logo eliminado');
+}
+
+/* ═══════════════════════════════════════════
+   IMPORTAR / EXPORTAR / NUEVA
+═══════════════════════════════════════════ */
+function newQuote() {
+  if (!confirm('¿Crear una cotización nueva en blanco? Se conservarán los datos de tu empresa y proveedor, pero se borrarán los productos y se asignará un número nuevo.')) return;
+  config.rows = [];
+  config.quote.number = String(parseInt(config.quote.number || '0', 10) + 1).padStart(8, '0');
+  config.quote.date = new Date().toISOString().slice(0,10);
+  config.totals.discount = 0;
+  saveConfig();
+  fillConfigFields();
+  renderDocument();
+  showToast('Cotización nueva lista');
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `cotizacion_${config.quote.number || 'sin-numero'}_${config.quote.date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Respaldo descargado');
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      config = deepMerge(structuredClone(DEFAULT_CONFIG), parsed);
+      nextRowId = (config.rows.reduce((m, r) => Math.max(m, r.id || 0), 0) || 0) + 1;
+      saveConfig();
+      fillConfigFields();
+      renderDocument();
+      showToast('Cotización cargada');
+    } catch (err) {
+      showToast('Archivo inválido');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function exportPDF() {
+  document.getElementById('addForm').classList.remove('visible');
+  const wasOpen = document.getElementById('configPanel').classList.contains('open');
+  document.getElementById('configPanel').classList.remove('open');
+  const originalTitle = document.title;
+  const safeName = (config.company.name || 'empresa').replace(/[^a-z0-9]+/gi, '_');
+  document.title = `Cotizacion_${safeName}_${config.quote.number || 'sin-numero'}`;
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => {
+      document.title = originalTitle;
+      if (wasOpen) document.getElementById('configPanel').classList.add('open');
+    }, 500);
+  }, 100);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* ═══════════════════════════════════════════
+   MÓDULO DE IMPORTACIÓN (PDF / IMAGEN → ITEMS)
+═══════════════════════════════════════════ */
+let selectedFile = null;
+let extractedItems = [];
+
+function openImport() {
+  resetImport();
+  document.getElementById('importModal').classList.add('open');
+}
+
+function closeImport() {
+  document.getElementById('importModal').classList.remove('open');
+}
+
+function resetImport() {
+  selectedFile = null;
+  extractedItems = [];
+  document.getElementById('importFileInput').value = '';
+  document.getElementById('fileChips').innerHTML = '';
+  document.getElementById('processBtn').disabled = true;
+  document.getElementById('processBtn').style.display = '';
+  document.getElementById('addItemsBtn').style.display = 'none';
+  document.getElementById('footerInfo').textContent = 'Los items extraídos se podrán revisar antes de añadirlos.';
+  showImportState('dropzone');
+}
+
+function showImportState(state) {
+  ['dropzone', 'loading', 'review', 'error'].forEach(s => {
+    document.getElementById('state-' + s).style.display = s === state ? '' : 'none';
+  });
+}
+
+function handleFileSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  setSelectedFile(file);
+}
+
+function setSelectedFile(file) {
+  // Validar tipo
+  const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+  const isImage = file.type.startsWith('image/');
+  if (!isPDF && !isImage) {
+    showToast('Solo se aceptan PDFs o imágenes');
+    return;
+  }
+  // Validar tamaño
+  if (file.size > 32 * 1024 * 1024) {
+    showToast('Archivo demasiado grande (máx 32 MB)');
+    return;
+  }
+  selectedFile = file;
+  // Mostrar chip
+  const kb = (file.size / 1024).toFixed(0);
+  const sizeStr = file.size > 1024 * 1024 ? (file.size / 1024 / 1024).toFixed(1) + ' MB' : kb + ' KB';
+  document.getElementById('fileChips').innerHTML = `
+    <div class="file-chip">
+      <span>${isPDF ? '📄' : '🖼️'}</span>
+      <span>${esc(file.name)}</span>
+      <span class="file-size">${sizeStr}</span>
+      <button onclick="clearSelectedFile()" title="Quitar">✕</button>
+    </div>
+  `;
+  document.getElementById('processBtn').disabled = false;
+}
+
+function clearSelectedFile() {
+  selectedFile = null;
+  document.getElementById('importFileInput').value = '';
+  document.getElementById('fileChips').innerHTML = '';
+  document.getElementById('processBtn').disabled = true;
+}
+
+// Drag & drop
+(function setupDragDrop() {
+  const dz = () => document.getElementById('dropZone');
+  ['dragenter','dragover'].forEach(ev => {
+    document.addEventListener(ev, e => {
+      if (!document.getElementById('importModal').classList.contains('open')) return;
+      e.preventDefault();
+      if (dz()) dz().classList.add('dragover');
+    });
+  });
+  ['dragleave','drop'].forEach(ev => {
+    document.addEventListener(ev, e => {
+      if (!document.getElementById('importModal').classList.contains('open')) return;
+      e.preventDefault();
+      if (dz()) dz().classList.remove('dragover');
+    });
+  });
+  document.addEventListener('drop', e => {
+    if (!document.getElementById('importModal').classList.contains('open')) return;
+    const file = e.dataTransfer.files[0];
+    if (file) setSelectedFile(file);
+  });
+})();
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // result is "data:application/pdf;base64,XXXX" → strip prefix
+      const result = reader.result;
+      const comma = result.indexOf(',');
+      resolve(result.slice(comma + 1));
+    };
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function processFile() {
+  if (!selectedFile) return;
+  showImportState('loading');
+  document.getElementById('processBtn').style.display = 'none';
+
+  try {
+    setLoadingStep('Codificando archivo…');
+    const base64Data = await fileToBase64(selectedFile);
+
+    // Detectar tipo de archivo de forma robusta
+    const fname = selectedFile.name.toLowerCase();
+    const isPDF = selectedFile.type === 'application/pdf' || fname.endsWith('.pdf');
+
+    let mediaType;
+    if (isPDF) {
+      mediaType = 'application/pdf';
+    } else if (fname.endsWith('.png')) {
+      mediaType = 'image/png';
+    } else if (fname.endsWith('.gif')) {
+      mediaType = 'image/gif';
+    } else if (fname.endsWith('.webp')) {
+      mediaType = 'image/webp';
+    } else if (fname.endsWith('.jpg') || fname.endsWith('.jpeg')) {
+      mediaType = 'image/jpeg';
+    } else if (selectedFile.type && ['image/jpeg','image/png','image/gif','image/webp'].includes(selectedFile.type)) {
+      mediaType = selectedFile.type;
+    } else {
+      throw new Error('Formato no soportado. Usa PDF, JPG, PNG, GIF o WebP.');
+    }
+
+    setLoadingStep('Enviando al servidor…');
+
+    // Llamamos a nuestro backend (/api/extract) que hace de proxy seguro a Claude.
+    // La API key vive solo en las variables de entorno de Vercel.
+    const response = await fetch('/api/extract', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ base64Data, mediaType, isPDF })
+    });
+
+    setLoadingStep('Procesando respuesta…');
+
+    if (!response.ok) {
+      let errMsg = `Error ${response.status}`;
+      try {
+        const errData = await response.json();
+        errMsg = errData.error || errMsg;
+        if (errData.detail) errMsg += ' — ' + errData.detail;
+      } catch (e) {
+        try { errMsg = await response.text(); } catch (e2) {}
+      }
+      throw new Error(errMsg);
+    }
+
+    const parsed = await response.json();
+
+    if (!parsed.items || !Array.isArray(parsed.items) || parsed.items.length === 0) {
+      throw new Error('No se encontraron items en el documento');
+    }
+
+    // Normalizar items
+    extractedItems = parsed.items.map((it, idx) => ({
+      id: 'imp-' + idx,
+      selected: true,
+      code: String(it.code || '').trim(),
+      desc: String(it.description || it.desc || '').trim(),
+      qty: Math.max(0, parseFloat(it.qty) || 1),
+      price: Math.max(0, parseFloat(it.price) || 0),
+    }));
+
+    showReview(parsed);
+
+  } catch (err) {
+    console.error('Import error:', err);
+    showImportError(err.message);
+  }
+}
+
+function setLoadingStep(text) {
+  document.getElementById('loadingStep').textContent = text;
+}
+
+function showImportError(msg) {
+  showImportState('error');
+  document.getElementById('errorMsg').textContent = msg || 'Error desconocido';
+  let detail = 'Verifica que el archivo contenga una lista de productos legible.';
+  if (msg && msg.toLowerCase().includes('failed to fetch')) {
+    detail = '⚠ El backend no está disponible. Esto pasa si abres el HTML localmente. Debes desplegar el proyecto completo en Vercel (incluyendo la carpeta /api).';
+  } else if (msg && msg.includes('ANTHROPIC_API_KEY')) {
+    detail = '⚠ Falta configurar la variable de entorno ANTHROPIC_API_KEY en Vercel. Ve a Settings → Environment Variables.';
+  } else if (msg && msg.includes('401')) {
+    detail = '⚠ API key inválida. Verifica tu key en console.anthropic.com.';
+  } else if (msg && msg.includes('429')) {
+    detail = '⚠ Demasiadas solicitudes. Espera unos segundos e intenta de nuevo.';
+  }
+  document.getElementById('errorDetail').textContent = detail;
+}
+
+function showReview(parsedData) {
+  showImportState('review');
+  document.getElementById('processBtn').style.display = 'none';
+  document.getElementById('addItemsBtn').style.display = '';
+
+  const sourceParts = [];
+  if (parsedData.provider) sourceParts.push('Proveedor: ' + parsedData.provider);
+  if (parsedData.documentNumber) sourceParts.push('Doc: ' + parsedData.documentNumber);
+  if (parsedData.currency) sourceParts.push('Moneda: ' + parsedData.currency);
+  document.getElementById('reviewSource').textContent = sourceParts.join(' · ') || 'Documento procesado';
+
+  renderReviewTable();
+  updateReviewCount();
+  document.getElementById('footerInfo').textContent = 'Desmarca los items que no quieras importar. Puedes editar valores antes de agregar.';
+}
+
+function renderReviewTable() {
+  const tbody = document.getElementById('reviewBody');
+  tbody.innerHTML = '';
+  extractedItems.forEach((it, idx) => {
+    const total = it.qty * it.price;
+    const tr = document.createElement('tr');
+    if (!it.selected) tr.classList.add('excluded');
+    tr.innerHTML = `
+      <td class="center">
+        <input type="checkbox" ${it.selected ? 'checked' : ''} onchange="toggleReviewItem(${idx}, this.checked)">
+      </td>
+      <td><input class="mono" value="${esc(it.code)}" oninput="updateReviewItem(${idx}, 'code', this.value)"></td>
+      <td><input value="${esc(it.desc)}" oninput="updateReviewItem(${idx}, 'desc', this.value)"></td>
+      <td class="right"><input class="mono qty" type="number" min="0" step="any" value="${it.qty}" oninput="updateReviewItem(${idx}, 'qty', +this.value || 0)"></td>
+      <td class="right"><input class="mono price" type="number" min="0" step="0.01" value="${it.price.toFixed(2)}" oninput="updateReviewItem(${idx}, 'price', +this.value || 0)"></td>
+      <td class="right mono" id="rev-tot-${idx}" style="font-weight:600">${fmt(total)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function toggleReviewItem(idx, checked) {
+  extractedItems[idx].selected = checked;
+  const tbody = document.getElementById('reviewBody');
+  tbody.children[idx].classList.toggle('excluded', !checked);
+  updateReviewCount();
+}
+
+function updateReviewItem(idx, field, value) {
+  extractedItems[idx][field] = value;
+  const totCell = document.getElementById('rev-tot-' + idx);
+  if (totCell) totCell.textContent = fmt(extractedItems[idx].qty * extractedItems[idx].price);
+}
+
+function toggleAllReview(value) {
+  extractedItems.forEach(it => it.selected = value);
+  renderReviewTable();
+  updateReviewCount();
+}
+
+function updateReviewCount() {
+  const total = extractedItems.length;
+  const selected = extractedItems.filter(it => it.selected).length;
+  document.getElementById('reviewCount').textContent =
+    `${total} item${total !== 1 ? 's' : ''} detectado${total !== 1 ? 's' : ''} · ${selected} seleccionado${selected !== 1 ? 's' : ''}`;
+}
+
+function addSelectedItems() {
+  const toAdd = extractedItems.filter(it => it.selected);
+  if (!toAdd.length) {
+    showToast('No hay items seleccionados');
+    return;
+  }
+  toAdd.forEach(it => {
+    config.rows.push({
+      id: nextRowId++,
+      code: it.code || 'SIN-COD',
+      desc: it.desc || 'Sin descripción',
+      qty: it.qty || 1,
+      price: it.price || 0,
+    });
+  });
+  saveConfig();
+  renderTable();
+  closeImport();
+  showToast(`${toAdd.length} item${toAdd.length !== 1 ? 's agregados' : ' agregado'}`);
+}
+
+/* ═══════════════════════════════════════════
+   CONVERSIÓN DE MONEDA
+═══════════════════════════════════════════ */
+const CURRENCY_NAMES = {
+  USD: 'Dólar estadounidense',
+  CLP: 'Peso chileno',
+  EUR: 'Euro',
+  COP: 'Peso colombiano',
+  PEN: 'Sol peruano',
+  MXN: 'Peso mexicano',
+  ARS: 'Peso argentino',
+  BRL: 'Real brasileño',
+  GBP: 'Libra esterlina',
+  JPY: 'Yen japonés',
+};
+
+// Tasas de referencia indicativas (no actualizadas en tiempo real).
+// El usuario las ajusta manualmente. Estos valores existen solo como punto de partida.
+const DEFAULT_RATES = {
+  'USD->CLP': 950,
+  'USD->EUR': 0.92,
+  'USD->COP': 4100,
+  'USD->PEN': 3.75,
+  'USD->MXN': 17.5,
+  'USD->ARS': 1000,
+  'USD->BRL': 5.05,
+  'USD->GBP': 0.79,
+  'USD->JPY': 155,
+  'CLP->USD': 1/950,
+  'EUR->USD': 1/0.92,
+  'COP->USD': 1/4100,
+  'PEN->USD': 1/3.75,
+  'MXN->USD': 1/17.5,
+  'ARS->USD': 1/1000,
+  'BRL->USD': 1/5.05,
+  'GBP->USD': 1/0.79,
+  'JPY->USD': 1/155,
+  'CLP->EUR': (1/950) * 0.92,
+  'EUR->CLP': 950 / 0.92,
+  'CLP->COP': (1/950) * 4100,
+  'COP->CLP': (1/4100) * 950,
+  'CLP->PEN': (1/950) * 3.75,
+  'PEN->CLP': (1/3.75) * 950,
+};
+
+const RATES_STORAGE_KEY = 'oftalmonet_currency_rates_v1';
+
+function loadSavedRates() {
+  try {
+    const raw = localStorage.getItem(RATES_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) { return {}; }
+}
+
+function saveRate(from, to, rate, timestamp) {
+  const rates = loadSavedRates();
+  const key = `${from}->${to}`;
+  rates[key] = { rate, timestamp: timestamp || Date.now() };
+  // Guardar también el inverso
+  const inverseKey = `${to}->${from}`;
+  rates[inverseKey] = { rate: 1 / rate, timestamp: timestamp || Date.now() };
+  try { localStorage.setItem(RATES_STORAGE_KEY, JSON.stringify(rates)); } catch (e) {}
+}
+
+function getRate(from, to) {
+  if (from === to) return { rate: 1, source: 'identity' };
+  const saved = loadSavedRates();
+  const key = `${from}->${to}`;
+  if (saved[key]) return { rate: saved[key].rate, source: 'saved', timestamp: saved[key].timestamp };
+  if (DEFAULT_RATES[key]) return { rate: DEFAULT_RATES[key], source: 'default' };
+  // Triangular vía USD
+  const fromToUSD = from === 'USD' ? 1 : (saved[`${from}->USD`]?.rate || DEFAULT_RATES[`${from}->USD`]);
+  const usdToTarget = to === 'USD' ? 1 : (saved[`USD->${to}`]?.rate || DEFAULT_RATES[`USD->${to}`]);
+  if (fromToUSD && usdToTarget) {
+    return { rate: fromToUSD * usdToTarget, source: 'triangulated' };
+  }
+  return { rate: 1, source: 'fallback' };
+}
+
+function openCurrency() {
+  if (!config.rows.length) {
+    showToast('No hay items para convertir');
+    return;
+  }
+  // Pre-seleccionar moneda de origen = la actual de la cotización
+  document.getElementById('curFrom').value = config.quote.currency || 'USD';
+  // Sugerir destino diferente
+  const fromCur = document.getElementById('curFrom').value;
+  document.getElementById('curTo').value = fromCur === 'USD' ? 'CLP' : 'USD';
+  // Reset opciones
+  document.getElementById('optUpdateCurrency').checked = true;
+  document.getElementById('optRoundPrices').checked = false;
+
+  renderQuickRates();
+  updateConversion();
+  document.getElementById('currencyModal').classList.add('open');
+}
+
+function closeCurrency() {
+  document.getElementById('currencyModal').classList.remove('open');
+}
+
+function updateConversion() {
+  const from = document.getElementById('curFrom').value;
+  const to   = document.getElementById('curTo').value;
+
+  // Actualizar pills
+  document.getElementById('ratePill1').textContent = '1 ' + from;
+  document.getElementById('ratePill2').textContent = to;
+  document.getElementById('metaFrom').textContent = from;
+  document.getElementById('metaTo').textContent = to;
+
+  // Obtener tasa
+  const { rate, source, timestamp } = getRate(from, to);
+  document.getElementById('rateInput').value = formatRate(rate);
+
+  // Meta info
+  document.getElementById('metaInverse').textContent = formatRate(1 / rate);
+  let metaText = '';
+  if (source === 'saved' && timestamp) {
+    const dt = new Date(timestamp);
+    metaText = `Guardada: ${dt.toLocaleDateString('es-CL')} ${dt.toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'})}`;
+  } else if (source === 'default') {
+    metaText = '⚠ Tasa indicativa — verifica con fuente oficial';
+  } else if (source === 'triangulated') {
+    metaText = 'Calculada vía USD — verifica';
+  } else if (source === 'identity') {
+    metaText = 'Misma moneda';
+  }
+  document.getElementById('rateLastUpdate').textContent = metaText;
+
+  // Link de búsqueda
+  document.getElementById('rateSourceLink').href =
+    `https://www.google.com/search?q=${from}+to+${to}+exchange+rate`;
+  document.getElementById('rateSourceLink').textContent = `Google Finance (${from}→${to})`;
+
+  refreshPreview();
+}
+
+function formatRate(rate) {
+  if (rate >= 100) return rate.toFixed(2);
+  if (rate >= 1) return rate.toFixed(4);
+  return rate.toFixed(6);
+}
+
+function onRateChange() {
+  const from = document.getElementById('curFrom').value;
+  const to   = document.getElementById('curTo').value;
+  const rate = parseFloat(document.getElementById('rateInput').value) || 0;
+  if (rate > 0 && from !== to) {
+    saveRate(from, to, rate);
+    document.getElementById('metaInverse').textContent = formatRate(1 / rate);
+    document.getElementById('rateLastUpdate').textContent = 'Tasa actualizada ahora';
+  }
+  refreshPreview();
+}
+
+function refreshPreview() {
+  const from = document.getElementById('curFrom').value;
+  const to   = document.getElementById('curTo').value;
+  const rate = parseFloat(document.getElementById('rateInput').value) || 0;
+  const round = document.getElementById('optRoundPrices').checked;
+
+  // Calcular subtotal en moneda actual
+  const subtotal = config.rows.reduce((s, r) => s + (r.qty || 0) * (r.price || 0), 0);
+  const converted = subtotal * rate;
+  const finalAmount = round ? Math.round(converted) : converted;
+
+  document.getElementById('previewFrom').textContent =
+    `${from} ${subtotal.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  document.getElementById('previewTo').textContent =
+    `${to} ${finalAmount.toLocaleString('es-CL', { minimumFractionDigits: round ? 0 : 2, maximumFractionDigits: round ? 0 : 2 })}`;
+  document.getElementById('previewCount').textContent = config.rows.length;
+}
+
+function renderQuickRates() {
+  const from = document.getElementById('curFrom').value;
+  const targets = ['CLP', 'USD', 'EUR', 'COP', 'PEN', 'MXN'].filter(c => c !== from);
+  const container = document.getElementById('quickRates');
+  container.innerHTML = '<div style="grid-column:1/-1;font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:0.8px;margin-top:4px">Atajos comunes desde ' + from + '</div>';
+  targets.forEach(t => {
+    const { rate, source } = getRate(from, t);
+    const btn = document.createElement('button');
+    btn.className = 'quick-rate-btn';
+    btn.innerHTML = `<strong>1 ${from} = ${formatRate(rate)} ${t}</strong><span>${source === 'saved' ? 'guardada' : 'indicativa'}</span>`;
+    btn.onclick = () => {
+      document.getElementById('curTo').value = t;
+      updateConversion();
+    };
+    container.appendChild(btn);
+  });
+}
+
+function applyConversion() {
+  const from = document.getElementById('curFrom').value;
+  const to   = document.getElementById('curTo').value;
+  const rate = parseFloat(document.getElementById('rateInput').value) || 0;
+  const round = document.getElementById('optRoundPrices').checked;
+  const updateCur = document.getElementById('optUpdateCurrency').checked;
+
+  if (!rate || rate <= 0) {
+    showToast('Tasa inválida');
+    return;
+  }
+  if (from === to) {
+    closeCurrency();
+    return;
+  }
+  if (!confirm(`¿Convertir ${config.rows.length} item${config.rows.length !== 1 ? 's' : ''} de ${from} a ${to} usando tasa ${formatRate(rate)}? Esta acción modifica los precios.`)) return;
+
+  // Guardar la tasa para futuro uso
+  saveRate(from, to, rate);
+
+  // Aplicar a cada item
+  config.rows.forEach(row => {
+    const newPrice = row.price * rate;
+    row.price = round ? Math.round(newPrice) : Math.round(newPrice * 100) / 100;
+  });
+
+  // Actualizar moneda de la cotización si está marcado
+  if (updateCur) {
+    config.quote.currency = to;
+    config.quote.currencySymbol = to;
+    config.quote.status = 'Moneda: ' + to;
+    // Refrescar inputs de config si están visibles
+    const curInput = document.getElementById('cfg-currency');
+    const symInput = document.getElementById('cfg-currency-symbol');
+    const statusInput = document.getElementById('cfg-quote-status');
+    if (curInput) curInput.value = to;
+    if (symInput) symInput.value = to;
+    if (statusInput) statusInput.value = 'Moneda: ' + to;
+  }
+
+  saveConfig();
+  renderDocument();
+  closeCurrency();
+  showToast(`Convertido a ${to} (${config.rows.length} item${config.rows.length !== 1 ? 's' : ''})`);
+}
+
+/* ═══════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════ */
+// Sincronizar inputs de color (text <-> picker)
+document.addEventListener('input', e => {
+  if (e.target.id === 'cfg-color') document.getElementById('cfg-color-text').value = e.target.value;
+  if (e.target.id === 'cfg-color-text') {
+    const picker = document.getElementById('cfg-color');
+    if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) picker.value = e.target.value;
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('addForm').classList.contains('visible')) addRow();
+  if (e.key === 'Escape') {
+    document.getElementById('addForm').classList.remove('visible');
+  }
+});
+
+fillConfigFields();
+renderDocument();
+</script>
+</body>
+</html>

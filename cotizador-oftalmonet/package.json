@@ -1,0 +1,9 @@
+{
+  "name": "cotizador-oftalmonet",
+  "version": "1.0.0",
+  "description": "Sistema de cotizaciones para Oftalmonet con extracción inteligente de items desde PDFs e imágenes",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  }
+}
